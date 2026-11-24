@@ -7,6 +7,7 @@ import {
 import { toast } from "sonner";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -276,9 +277,19 @@ function Benefits() {
 function Waitlist() {
   const [email, setEmail] = useState("");
   const [done, setDone] = useState(false);
-  const submit = (e: FormEvent) => {
+  const [busy, setBusy] = useState(false);
+  const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (!/^\S+@\S+\.\S+$/.test(email)) { toast.error("Please enter a valid email address."); return; }
+    setBusy(true);
+    const { error } = await supabase.from("waitlist_signups").insert({ email });
+    setBusy(false);
+    if (error) {
+      // 23505 = that email is already on the list, which is still a good outcome.
+      if (error.code === "23505") { setDone(true); return; }
+      toast.error("We couldn't save your email. Please try again.");
+      return;
+    }
     setDone(true);
     toast.success("You're on the list!");
   };
@@ -293,7 +304,7 @@ function Waitlist() {
         <form onSubmit={submit} className="mx-auto mt-10 flex max-w-md flex-col gap-3 sm:flex-row">
           <label htmlFor="email" className="sr-only">Email address</label>
           <Input id="email" type="email" required placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="h-12 rounded-full px-5" />
-          <Button type="submit" size="lg" className="h-12 rounded-full px-7">Join</Button>
+          <Button type="submit" size="lg" disabled={busy} className="h-12 rounded-full px-7">{busy ? "Joining…" : "Join"}</Button>
         </form>
       )}
     </section>

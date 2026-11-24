@@ -23,6 +23,23 @@ export function liveReading(s: Scenario): Reading {
 
 function seeded(n: number) { const x = Math.sin(n * 9301 + 49297) * 233280; return x - Math.floor(x); }
 
+/**
+ * Next simulated sensor reading: drifts from the previous one toward the
+ * chosen scenario's baseline, so a saved history reads as a continuous trend.
+ */
+export function nextSimulatedReading(previous: Reading | null, s: Scenario): Reading {
+  const from = previous ?? baselines.normal;
+  const to = baselines[s];
+  const step = 0.35;
+  const drift = (k: keyof Reading) => from[k] + (to[k] - from[k]) * step + (Math.random() - 0.5) * 2 * jitter[k];
+  return {
+    temp: +drift("temp").toFixed(1),
+    ph: +drift("ph").toFixed(2),
+    moisture: Math.round(drift("moisture")),
+    score: Math.round(drift("score")),
+  };
+}
+
 /** 24 hourly points drifting from a healthy baseline toward the scenario's current values. */
 export function series24h(s: Scenario) {
   const from = baselines.normal, to = baselines[s];
