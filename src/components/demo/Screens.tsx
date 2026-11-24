@@ -21,7 +21,7 @@ const metrics = [
 ] as const;
 
 function metricStatus(key: keyof Reading, v: number): Status {
-  const t = { temp: [34.5, 36.5], ph: [7.1, 7.9], moisture: [60, 74] }[key as "temp"];
+  const t: [number, number] = ({ temp: [34.5, 36.5], ph: [7.1, 7.9], moisture: [60, 74] } as Record<string, [number, number]>)[key] ?? [0, 0];
   if (key === "score") return v >= 75 ? "healthy" : v >= 55 ? "watch" : "alert";
   return v < t[0] ? "healthy" : v < t[1] ? "watch" : "alert";
 }
