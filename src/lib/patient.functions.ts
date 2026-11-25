@@ -169,6 +169,16 @@ export const addReading = createServerFn({ method: "POST" })
     };
     const status = statusFor(reading);
 
+    const { data: latest, error: latestError } = await supabase
+      .from("readings")
+      .select("status")
+      .eq("user_id", userId)
+      .order("recorded_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (latestError) throw new Error(latestError.message);
+    const previousStatus = latest ? asStatus(latest.status) : "healthy";
+
     const { error: insertError } = await supabase.from("readings").insert({
       user_id: userId,
       temp_c: reading.temp,
@@ -179,7 +189,20 @@ export const addReading = createServerFn({ method: "POST" })
     });
     if (insertError) throw new Error(insertError.message);
 
-    return { reading, status };
+    // Typed-in readings follow the same rule as synced ones: a status change raises an alert.
+    const copy = alertForTransition(previousStatus, status);
+    if (copy) {
+      const { error: alertError } = await supabase.from("alerts").insert({
+        user_id: userId,
+        level: copy.level,
+        title: copy.title,
+        action: copy.action,
+        contact_doctor: copy.contact,
+      });
+      if (alertError) throw new Error(alertError.message);
+    }
+
+    return { reading, status, alert: copy };
   });
 
 const profileSchema = z.object({

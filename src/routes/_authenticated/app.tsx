@@ -62,7 +62,8 @@ function App() {
       const result = await syncBandage({ data: { scenario } });
       await refresh();
       if (result.alert) {
-        toast[result.alert.level === "healthy" ? "success" : "error"](result.alert.title);
+        if (result.alert.level === "healthy") toast.success(result.alert.title);
+        else toast.error(result.alert.title);
       } else {
         toast.success(`Reading saved · ${statusLabel[result.status]}`);
       }
@@ -78,7 +79,12 @@ function App() {
     try {
       const result = await addReading({ data: values });
       await refresh();
-      toast.success(`Reading saved · ${statusLabel[result.status]}`);
+      if (result.alert) {
+        if (result.alert.level === "healthy") toast.success(result.alert.title);
+        else toast.error(result.alert.title);
+      } else {
+        toast.success(`Reading saved · ${statusLabel[result.status]}`);
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not save the reading.");
     } finally {
