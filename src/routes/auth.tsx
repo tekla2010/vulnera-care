@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { toast } from "sonner";
 import { lovable } from "@/integrations/lovable";
 import { supabase } from "@/integrations/supabase/client";
@@ -235,7 +235,7 @@ function Auth() {
   );
 }
 
-function Shell({ children }: { children: React.ReactNode }) {
+function Shell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-hero px-5 py-10">
       <div className="mx-auto w-full max-w-sm">
