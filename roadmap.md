@@ -8,3 +8,5 @@
 - [ ] Patient dashboard reads from saved data instead of only simulation
 - [ ] Keep the simulated demo at /demo working as before
 - [ ] Verify end-to-end signed in: readings and alerts persist after reload
+
+- [ ] App Store / Google Play release — blocked: needs a native build outside this project, plus Apple and Google developer accounts
