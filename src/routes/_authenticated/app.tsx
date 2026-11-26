@@ -18,6 +18,7 @@ import {
 import { statusLabel, type Scenario } from "@/lib/sim";
 import { statusStyles } from "@/components/demo/status";
 import { cn } from "@/lib/utils";
+import { BandageConnect } from "@/components/app/BandageConnect";
 import type { PatientProfile } from "@/lib/patient.types";
 
 export const Route = createFileRoute("/_authenticated/app")({
@@ -148,6 +149,10 @@ function App() {
         <h1 className="mt-1 text-2xl font-extrabold tracking-tight md:text-3xl">
           {data.profile.woundLocation ? `Wound · ${data.profile.woundLocation}` : "Your wound"}
         </h1>
+
+        <div className="mt-6">
+          <BandageConnect onReading={handleAddReading} />
+        </div>
 
         <nav className="mt-6 flex flex-wrap gap-1 rounded-full bg-muted p-1" role="tablist" aria-label="App screens">
           {tabs.map(({ id, label, icon: I }) => (
