@@ -52,6 +52,30 @@ export type Database = {
           },
         ]
       }
+      device_messages: {
+        Row: {
+          id: string
+          payload: Json
+          received_at: string
+          source: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          payload: Json
+          received_at?: string
+          source?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          payload?: Json
+          received_at?: string
+          source?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           care_team: string

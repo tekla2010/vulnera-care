@@ -31,6 +31,15 @@ export function parseDeviceJson(text: string): DeviceReading {
   };
 }
 
+/** Core values if the message has all four, otherwise null (the message is still logged). */
+export function tryCoreReading(raw: Record<string, unknown>): DeviceReading | null {
+  try {
+    return parseDeviceJson(JSON.stringify(raw));
+  } catch {
+    return null;
+  }
+}
+
 export const bluetoothSupported = () =>
   typeof navigator !== "undefined" && "bluetooth" in navigator;
 

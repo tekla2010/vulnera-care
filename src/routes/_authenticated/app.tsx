@@ -93,6 +93,15 @@ function App() {
     }
   }
 
+  async function handleDeviceMessage(msg: { payload: Record<string, unknown>; source: "bluetooth" | "file"; receivedAt: string }) {
+    const result = await saveDeviceMessage({ data: msg });
+    await refresh();
+    if (result.alert) {
+      if (result.alert.level === "healthy") toast.success(result.alert.title);
+      else toast.error(result.alert.title);
+    }
+  }
+
   async function handleSaveProfile(profile: PatientProfile) {
     setBusy(true);
     try {
@@ -151,7 +160,7 @@ function App() {
         </h1>
 
         <div className="mt-6">
-          <BandageConnect onReading={handleAddReading} />
+          <BandageConnect onMessage={handleDeviceMessage} />
         </div>
 
         <nav className="mt-6 flex flex-wrap gap-1 rounded-full bg-muted p-1" role="tablist" aria-label="App screens">
@@ -191,7 +200,7 @@ function App() {
             />
           )}
           {tab === "alerts" && <AppAlerts alerts={data.alerts} />}
-          {tab === "history" && <AppHistory readings={data.readings} />}
+          {tab === "history" && <AppHistory readings={data.readings} messages={data.messages} />}
           {tab === "care" && <AppCareTeam profile={data.profile} />}
           {tab === "details" && (
             <AppDetails

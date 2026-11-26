@@ -4,7 +4,8 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { nextSimulatedReading, type Reading } from "@/lib/sim";
 import { alertForTransition, statusFor } from "@/lib/status";
 import type { Status } from "@/lib/sim";
-import type { PatientHome, PatientProfile, StoredAlert, StoredReading } from "./patient.types";
+import { tryCoreReading } from "@/lib/bandage-ble";
+import type { DeviceMessage, PatientHome, PatientProfile, StoredAlert, StoredReading } from "./patient.types";
 
 const asStatus = (value: string): Status =>
   value === "watch" || value === "alert" ? value : "healthy";
@@ -22,7 +23,7 @@ export const getPatientHome = createServerFn({ method: "GET" })
     const { supabase, userId } = context;
     const sevenDaysAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
 
-    const [profileRes, readingsRes, alertsRes] = await Promise.all([
+    const [profileRes, readingsRes, alertsRes, messagesRes] = await Promise.all([
       supabase
         .from("profiles")
         .select("display_name, wound_location, care_team, clinic")
@@ -41,9 +42,15 @@ export const getPatientHome = createServerFn({ method: "GET" })
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .limit(50),
+      supabase
+        .from("device_messages")
+        .select("id, payload, source, received_at")
+        .eq("user_id", userId)
+        .order("received_at", { ascending: false })
+        .limit(1000),
     ]);
 
-    for (const res of [profileRes, readingsRes, alertsRes]) {
+    for (const res of [profileRes, readingsRes, alertsRes, messagesRes]) {
       if (res.error) throw new Error(res.error.message);
     }
 
@@ -65,6 +72,13 @@ export const getPatientHome = createServerFn({ method: "GET" })
       contact: Boolean(row.contact_doctor),
     }));
 
+    const messages: DeviceMessage[] = (messagesRes.data ?? []).map((row) => ({
+      id: row.id,
+      at: row.received_at,
+      source: row.source,
+      payload: (row.payload ?? {}) as Record<string, unknown>,
+    }));
+
     const profileRow = profileRes.data;
 
     return {
@@ -78,6 +92,7 @@ export const getPatientHome = createServerFn({ method: "GET" })
         : emptyProfile,
       readings,
       alerts,
+      messages,
     };
   });
 
@@ -231,4 +246,68 @@ export const saveProfile = createServerFn({ method: "POST" })
       );
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+const deviceSchema = z.object({
+  payload: z.record(z.string(), z.unknown()),
+  source: z.enum(["bluetooth", "file"]),
+  receivedAt: z.string().datetime().optional(),
+});
+
+/**
+ * Saves every bandage message verbatim (all fields, nothing dropped). When it
+ * also carries the four core values, it becomes a reading and may raise an alert.
+ */
+export const saveDeviceMessage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(deviceSchema)
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = context;
+    const receivedAt = data.receivedAt ?? new Date().toISOString();
+    const { error: msgError } = await supabase.from("device_messages").insert({
+      user_id: userId,
+      payload: data.payload as never,
+      source: data.source,
+      received_at: receivedAt,
+    });
+    if (msgError) throw new Error(msgError.message);
+
+    const core = tryCoreReading(data.payload);
+    if (!core) return { status: null, alert: null };
+    const reading: Reading = { temp: core.tempC, ph: core.ph, moisture: core.moisture, score: core.healingScore };
+    const status = statusFor(reading);
+
+    const { data: latest, error: latestError } = await supabase
+      .from("readings")
+      .select("status")
+      .eq("user_id", userId)
+      .order("recorded_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (latestError) throw new Error(latestError.message);
+    const previousStatus = latest ? asStatus(latest.status) : "healthy";
+
+    const { error: insertError } = await supabase.from("readings").insert({
+      user_id: userId,
+      temp_c: reading.temp,
+      ph: reading.ph,
+      moisture: reading.moisture,
+      healing_score: reading.score,
+      status,
+      recorded_at: receivedAt,
+    });
+    if (insertError) throw new Error(insertError.message);
+
+    const copy = alertForTransition(previousStatus, status);
+    if (copy) {
+      const { error: alertError } = await supabase.from("alerts").insert({
+        user_id: userId,
+        level: copy.level,
+        title: copy.title,
+        action: copy.action,
+        contact_doctor: copy.contact,
+      });
+      if (alertError) throw new Error(alertError.message);
+    }
+    return { status, alert: copy };
   });

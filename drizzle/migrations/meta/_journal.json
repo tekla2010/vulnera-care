@@ -15,6 +15,13 @@
       "when": 1795628743928,
       "tag": "0001_tighten_waitlist_insert",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795686852917,
+      "tag": "0002_device_messages",
+      "breakpoints": true
     }
   ]
 }

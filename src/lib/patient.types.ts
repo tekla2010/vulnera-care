@@ -25,8 +25,16 @@ export interface StoredAlert {
   contact: boolean;
 }
 
+export interface DeviceMessage {
+  id: string;
+  at: string;
+  source: string;
+  payload: Record<string, unknown>;
+}
+
 export interface PatientHome {
   profile: PatientProfile;
+  messages: DeviceMessage[];
   readings: StoredReading[];
   alerts: StoredAlert[];
 }
