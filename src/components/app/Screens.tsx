@@ -27,6 +27,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { statusStyles } from "@/components/demo/status";
+import { changedKeys } from "@/lib/device-log";
 import { statusLabel, type Scenario, type Status } from "@/lib/sim";
 import { metricStatus } from "@/lib/status";
 import { cn } from "@/lib/utils";
@@ -302,9 +303,37 @@ export function AppAlerts({ alerts }: { alerts: StoredAlert[] }) {
   );
 }
 
-export function AppHistory({ readings }: { readings: StoredReading[] }) {
+function MessageLog({ messages }: { messages: DeviceMessage[] }) {
+  if (!messages.length) return null;
+  return (
+    <section className="rounded-2xl border border-border bg-card p-4" aria-label="Every bandage message">
+      <p className="text-xs font-semibold">Every bandage message ({messages.length})</p>
+      <ol className="mt-2 space-y-2">
+        {messages.map((m, i) => {
+          const prev = messages[i + 1]?.payload ?? null;
+          const changed = new Set(changedKeys(prev, m.payload));
+          return (
+            <li key={m.id} className="rounded-xl bg-muted p-2 text-xs">
+              <p className="text-muted-foreground">{new Date(m.at).toLocaleString()} · {m.source}</p>
+              <div className="mt-1 flex flex-wrap gap-1">
+                {Object.entries(m.payload).map(([k, v]) => (
+                  <span key={k} className={changed.has(k) ? "rounded-full bg-primary px-2 py-0.5 text-primary-foreground" : "rounded-full bg-background px-2 py-0.5"}>
+                    {k}: {typeof v === "object" ? JSON.stringify(v) : String(v)}
+                  </span>
+                ))}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </section>
+  );
+}
+
+export function AppHistory({ readings, messages = [] }: { readings: StoredReading[]; messages?: DeviceMessage[] }) {
   const data = dailySeries(readings);
   if (data.length < 2) {
+    if (messages.length) return <MessageLog messages={messages} />;
     return (
       <div className="rounded-3xl border border-dashed border-border bg-card p-8 text-center">
         <p className="text-lg font-bold">Not enough history yet</p>
@@ -335,6 +364,7 @@ export function AppHistory({ readings }: { readings: StoredReading[] }) {
           </div>
         </div>
       ))}
+      <MessageLog messages={messages} />
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/site/Logo";
 import { Button } from "@/components/ui/button";
-import { addReading, saveProfile, syncBandage } from "@/lib/patient.functions";
+import { addReading, saveDeviceMessage, saveProfile, syncBandage } from "@/lib/patient.functions";
 import { patientHomeOptions } from "@/lib/patient.queries";
 import {
   AppAlerts,

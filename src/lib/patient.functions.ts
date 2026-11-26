@@ -76,7 +76,7 @@ export const getPatientHome = createServerFn({ method: "GET" })
       id: row.id,
       at: row.received_at,
       source: row.source,
-      payload: (row.payload ?? {}) as Record<string, unknown>,
+      payload: (row.payload ?? {}) as DeviceMessage["payload"],
     }));
 
     const profileRow = profileRes.data;

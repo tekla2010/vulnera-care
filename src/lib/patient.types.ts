@@ -25,11 +25,13 @@ export interface StoredAlert {
   contact: boolean;
 }
 
+export type JsonValue = string | number | boolean | null | JsonValue[] | { [k: string]: JsonValue };
+
 export interface DeviceMessage {
   id: string;
   at: string;
   source: string;
-  payload: Record<string, unknown>;
+  payload: { [k: string]: JsonValue };
 }
 
 export interface PatientHome {
